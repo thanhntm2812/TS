@@ -1,89 +1,96 @@
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test("Menu list > Store list - XPath", async ({ page }) => {
-    // 1. must have // at the first
-    // 2. input[@att='username']
-    // 3.
+  test.setTimeout(180000);
 
-    await page.goto("https://ht-portal-uat.finviet.com.vn/auth/login", {
-        waitUntil: "networkidle",
-    });
+  await page.goto("https://ht-portal-uat.finviet.com.vn/auth/login", {
+    waitUntil: "domcontentloaded",
+  });
 
-    const loginForm = page.locator("//form");
+  //---------------------- 01 - login
+  const usernameTextbox = page.locator(
+    '//input[@placeholder="Nhập vào tài khoản."]',
+  );
+  const passwordTextbox = page.locator(
+    '//input[@placeholder="Nhập vào mật khẩu."]',
+  );
+  const loginButton = page.locator(
+    '//button[.//span[normalize-space()="Đăng nhập"]]',
+  );
 
-    //---------------------- 01 - login
-    const usernameTextbox = loginForm.locator('//input[@id="username"]');
-    const passwordTextbox = loginForm.locator('//input[@id="password"]');
-    const loginButton = page.locator('//button[contains(@class,"btn-login")]');
+  await usernameTextbox.fill("QCMTHO");
+  await passwordTextbox.fill("Abc@123123");
+  await loginButton.click();
+  await page.waitForURL("**/dashboard", { timeout: 60000 });
 
-    await usernameTextbox.click();
-    await usernameTextbox.fill("QCMTHO");
+  //-------------------- 02 - Navigate to "Danh sách điểm bán"
+  const menuBGData = page.locator(
+    "//div[@role='menuitem' and contains(normalize-space(.), 'Dữ Liệu Nền')]",
+  );
+  await menuBGData.waitFor({ state: "visible", timeout: 60000 });
+  await menuBGData.click();
 
-    await passwordTextbox.click();
-    await passwordTextbox.fill("Abc@123123");
+  const menuBusiness = page.locator(
+    "//div[@role='menuitem' and contains(normalize-space(.), 'Kinh Doanh')]",
+  );
+  await menuBusiness.waitFor({ state: "visible", timeout: 60000 });
+  await menuBusiness.click();
 
-    await loginButton.click();
+  const menuStoreList = page.locator(
+    "//a[contains(normalize-space(.), 'Danh Sách Điểm Bán')]",
+  );
+  await menuStoreList.waitFor({ state: "visible", timeout: 60000 });
+  await menuStoreList.click();
 
-    //--------------------- 02 - Navigate to "Dữ liệu nền"
-    const menuSidebar = page.locator("//aside");
+  await page.waitForURL("**/base-data/business/store");
 
-    const menuBGData = menuSidebar.locator('//div[contains(@data-menu-id,"BACKGROUND_DATA")]');
-    await menuBGData.click();
+  //--------------------- 03 - Search by keyword
+  const keywordTextbox = page.locator("//input[@id='keyword']");
+  await expect(keywordTextbox).toBeVisible({ timeout: 30000 });
+  await keywordTextbox.fill("NBI");
 
-    //--------------------- 03 - Navigate to "Kinh doanh"
+  //----------------------04 - Search by area = North
+  await page.locator("//input[@id='area_groups']").click();
+  const northOption = page.locator("//span[normalize-space()='NORTH']").first();
+  await northOption.waitFor({ state: "visible", timeout: 30000 });
+  await northOption.click();
+  await page.keyboard.press("Escape");
 
-    // //aside//ul[contains(@id,"BACKGROUND_DATA-popup")]//div[contains(@data-menu-id,"BUSINESS")]
-    const menuBGDataPopup = menuSidebar.locator('//ul[contains(@id,"BACKGROUND_DATA-popup")]');
+  //-----------------------05 - Search by NPP
+  const searchForm = page.locator(
+    '//div[contains(@class,"ant-pro-table-search-query-filter")]',
+  );
 
-    const menuBusiness = menuBGDataPopup.locator('//div[contains(@data-menu-id,"BUSINESS")]');
-    await menuBusiness.click();
+  const nppButton = searchForm.locator(
+    '//button[.//span[normalize-space()="Chọn"]]',
+  );
+  await nppButton.click();
 
-    //-------------------- 04 - Navigate to "Danh sách điểm bán"
+  // Pop up "Chọn nhà phân phối" is opened
+  const nppDialog = page.locator("//div[@role='dialog']");
+  const nppTextbox = nppDialog.locator("//input[@id='keyword']");
+  await nppTextbox.click();
+  await nppTextbox.fill("ERPNORTH");
 
-    // //aside//ul[contains(@id,"BACKGROUND_DATA-popup")]//ul[contains(@id,"BUSINESS-popup")]//li[contains(@data-menu-id,"/base-data/business/store") and not(contains(@data-menu-id,"store-"))]
-    const menuBusinessPopup = menuBGDataPopup.locator('//ul[contains(@id,"BUSINESS-popup")]');
+  const nppSearchButton = nppDialog.locator(
+    "//button[.//span[normalize-space()='Tìm kiếm']]",
+  );
+  await nppSearchButton.click();
 
-    const menuStoreList = menuBusinessPopup.locator('//li[contains(@data-menu-id,"/base-data/business/store") and not(contains(@data-menu-id,"store-"))]');
-    // const menuStoreList = menuSidebar.locator('//a[@href="/base-data/business/store"]');
-    await menuStoreList.click();
+  const nppCheckbox = nppDialog.locator(
+    "(//div[@role='dialog']//input[@type='checkbox'])[3]",
+  );
+  await nppCheckbox.click();
 
-    //--------------------- 05 - Search by keyword
-    // const searchForm = page.locator("(//form)[1]");
-    const searchForm = page.locator('//div[contains(@class,"ant-pro-table-search-query-filter")]');
+  const nppAgreeButton = nppDialog.locator(
+    "//button[.//span[normalize-space()='Đồng ý']]",
+  );
+  await nppAgreeButton.click();
+  // Pop up "Chọn nhà phân phối" is closed
 
-    // //form//input[@id="keyword"]
-    const keywordTextbox = searchForm.locator('//input[@id="keyword"]');
-    await keywordTextbox.click();
-    await keywordTextbox.fill("NBI");
-
-    //----------------------06 - Search by area = North
-    const areaCombobox = searchForm.locator('//input[@id="area_groups"]');
-    await areaCombobox.click();
-
-    const areaSelect = searchForm.locator('//span[@aria-label="Select North"]');
-    await areaSelect.click();
-
-    // -----------------------07 - Search by NPP
-    const nppButton = searchForm.locator('//span[text()="Chọn"]');
-    await nppButton.click();
-
-    // Pop up "Chọn nhà phân phối" is opened
-    const nppDialog = page.locator('//div[@role="dialog"]');
-    const nppTextbox = nppDialog.locator('//input[@id="keyword"]');
-    await nppTextbox.click();
-    await nppTextbox.fill("ERPNORTH");
-
-    const nppSearchButton = nppDialog.locator('//span[text()="Tìm kiếm"]');
-    await nppSearchButton.click();
-
-    const nppCheckbox = nppDialog.locator('(//div[@role="dialog"]//input[@type="checkbox"])[3]');
-    await nppCheckbox.click();
-
-    const nppAgreeButton = nppDialog.locator('//span[text()="Đồng ý"]');
-    await nppAgreeButton.click();
-    // Pop up "Chọn nhà phân phối" is closed
-
-    //--------------------- Click button search
-    const searchButton = searchForm.locator('//span[text()="Tìm kiếm"]');
-    await searchButton.click();
+  //--------------------- 06 - Click button search
+  const searchButton = searchForm.locator(
+    '//button[.//span[normalize-space()="Tìm kiếm"] and not(contains(@class, "ant-btn-loading")) and not(@disabled)]',
+  );
+  await searchButton.first().click();
 });
