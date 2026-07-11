@@ -19,7 +19,7 @@ test("Menu list > Store list - XPath", async ({ page }) => {
   );
 
   await usernameTextbox.fill("QCMTHO");
-  await passwordTextbox.fill("Abc@123123");
+  await passwordTextbox.fill("secreat");
   await loginButton.click();
   await page.waitForURL("**/dashboard", { timeout: 60000 });
 
